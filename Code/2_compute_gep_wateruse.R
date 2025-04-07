@@ -25,7 +25,7 @@ pwd <- here::here() # Replace with your working directory. It should be the root
 out_interm_dir <- file.path(pwd, "Data/intermediate")
 
 # --- Path to the "final" output folder --- #
-out_dir <- file.path(pwd, "Data/final")
+out_final_dir <- file.path(pwd, "Data/final")
 
 # Check if the output directory exists, if not create it
 if (!dir.exists(out_dir)) {
@@ -46,13 +46,17 @@ w_dt_country[, `:=`(
   gep_w_mun_bil= wue_municipal_usdpm3 * w_municipal / 10^9 
 )]
 
+fwrite(w_dt_country, file.path(out_final_dir, "gep_water_y_country.csv"))
 
+
+# /*===== Aggregate by year across countries =====*/
 w_dt_global <- 
   w_dt_country[,.(
     total_gep_w_ag_bil = sum(gep_w_ag_bil, na.rm = TRUE),
     total_gep_w_ind_bil = sum(gep_w_ind_bil, na.rm = TRUE),
     total_gep_w_mun_bil = sum(gep_w_mun_bil, na.rm = TRUE)
   ), by = year]
+
 
 
 w_dt_country_long <- 
@@ -67,9 +71,6 @@ w_dt_sf <-
     w_dt_country[year %in% seq(2007, 2022, by = 5)], 
     by = c("iso_a2" = "iso_code2")
   )
-
-
-
 
 # /*===========================================*/
 #'=  Visualization =
