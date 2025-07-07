@@ -1,6 +1,6 @@
 ############################################################
 # Project: Global GEP: Water Use Calculation
-# Author: Lifeng Ren, Shunkei Kakimoto
+# Author: Lifeng Ren
 # Date Created: 12/11/2024
 # Last Modified: 12/11/2024
 # Description: This script with takes in the cleaned csvs saved from the Aquastats platform
@@ -9,17 +9,14 @@
 #------------------------------------------------------------
 # 1. Setup----
 #------------------------------------------------------------
-
 # 1.1 Load Required Libraries
+library(here)
 library(dplyr)
 library(data.table)
-
-# 1.2 Define Working Directory
-#setwd("D:/Users/lifengren/Dropbox/400_research/440_UMN/gep/gep_fisheries/scripts")
-setwd("C:/Users/lifengren/Dropbox/400_research/440_UMN/gep/gep_wateruse/scripts")
+library(countrycode)
 
 # Define output directory
-output_dir <- "../intermediate/gep_wateruse_res/"
+output_dir <- here("Data/intermediate/gep_wateruse_res")
 
 # Create the directory if it doesn't exist
 if (!dir.exists(output_dir)) {
@@ -28,19 +25,22 @@ if (!dir.exists(output_dir)) {
 } else {
   cat("Output directory already exists:", output_dir, "\n")
 }
+
 #------------------------------------------------------------
 # 2. Data Import----
 #------------------------------------------------------------
+wue_dt <-
+  fread(
+    file = here("Data/intermediate/aquastat_cleaned/aquastats_cleaned.csv"), 
+    fill = TRUE
+  )
 
-# List of datasets to process
 
-# 2.1 Load Data
-# List of file paths for all datasets
-cleaned_aquastats_wue_paths <- "../intermediate/aquastat_cleaned/aquastats_cleaned.csv"
-cleaned_withdrawl_paths <- "../intermediate/withdrawl_cleaned/water_withdraw.csv"
-
-wue_dt <- fread(cleaned_aquastats_wue_paths, fill = TRUE)
-withdrawl_dt <- fread(cleaned_withdrawl_paths, fill = TRUE)
+withdrawl_dt <- 
+  fread(
+    here("Data/intermediate/withdrawl_cleaned/water_withdraw.csv"),
+    fill = TRUE
+  )
 
 #------------------------------------------------------------
 # 3. Data Merging
@@ -55,9 +55,11 @@ cat("Countries in wue_dt not found in withdrawl_dt:\n")
 print(unmatched)
 
 # At this point, you need to harmonize names. For example:
-# wue_dt uses "Cabo Verde" but withdrawl_dt uses "Cape Verde"
+# wue_dt uses "Cabo Verde" (in Portuguese) but withdrawl_dt uses "Cape Verde" (in English)
 wue_dt[country == "Cabo Verde", country := "Cape Verde"]
 
+# /*===== you can use countrycode to harmonize names: =====*/
+# countrycode("Cabo Verde", origin = "country.name", destination = "country.name")
 # Similarly, if wue_dt uses "Côte d'Ivoire" and withdrawl_dt uses "Cote d'Ivoire", harmonize:
 wue_dt[country == "Côte d'Ivoire", country := "Cote d'Ivoire"]
 
