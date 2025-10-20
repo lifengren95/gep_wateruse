@@ -71,11 +71,12 @@ w_dt_country[, `:=`(
 
 
 # This is the main table: 
-wateruse_gep_2019 <- 
-  w_dt_country[year == 2019, ] %>%
+tg_year <- 2019
+wateruse_gep_tbl <- 
+  w_dt_country[year == tg_year, ] %>%
   .[, .(iso3_r250_label, iso3_r250_id, iso3_r250_name, wateruse_gep)]
 
-fwrite(wateruse_gep_2019, file.path(out_final_dir, "wateruse_gep.csv"))
+fwrite(wateruse_gep_tbl, file.path(out_final_dir, "wateruse_gep.csv"))
 
 
 # /*===== Aggregate by year across countries =====*/
