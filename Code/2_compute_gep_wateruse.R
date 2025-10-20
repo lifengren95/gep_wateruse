@@ -40,6 +40,8 @@ if (!dir.exists(out_final_dir)) {
 # /*===== A. Loading the water use: Price and Quantity data =====*/
 w_dt_country <- fread(file.path(out_interm_dir, "water_p_q.csv"))
 
+data.frame(w_dt_country[year==2019])
+
 # /*===== B. Loading Country Boundary =====*/
 z_ee_r250_sf <- 
   st_read(file.path(pwd, "Data/raw/z_ee_r250_correspondence.gpkg")) %>%
@@ -51,6 +53,9 @@ z_ee_r250_dt <-
 
 
 # /*===== Merge A and B =====*/
+# check unmatched countries
+# setdiff(w_dt_country$iso_code3, z_ee_r250_dt$iso3_r250_label)
+
 w_dt_country <- 
   merge(z_ee_r250_dt, w_dt_country, , by.x = "iso3_r250_label", by.y = "iso_code3")
 
@@ -67,8 +72,7 @@ w_dt_country[, `:=`(
     ind_wateruse_gep = wue_industry_usdpm3 * w_industry, 
     mun_wateruse_gep = wue_municipal_usdpm3 * w_municipal 
   )] %>%
-  .[, wateruse_gep := ag_wateruse_gep + ind_wateruse_gep + mun_wateruse_gep]
-
+  .[, wateruse_gep := rowSums(.SD, na.rm = TRUE), .SDcols = c("ag_wateruse_gep", "ind_wateruse_gep", "mun_wateruse_gep")]
 
 # This is the main table: 
 tg_year <- 2019
