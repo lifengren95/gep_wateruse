@@ -14,9 +14,6 @@ library(sf)
 library(spData)
 data(world)
 
-# /*===========================================*/
-#'=  Calculation =
-# /*===========================================*/
 # /*===== Set paths =====*/
 # --- Current Working Directory (need to be changed)--- #
 pwd <- here::here() # Replace with your working directory. It should be the root of the project (path to the project folder in which "Data" folder is contained.)
@@ -28,25 +25,62 @@ out_interm_dir <- file.path(pwd, "Data/intermediate")
 out_final_dir <- file.path(pwd, "Data/final")
 
 # Check if the output directory exists, if not create it
-if (!dir.exists(out_dir)) {
-  dir.create(out_dir, recursive = TRUE)
-  cat("Output directory created:", out_dir, "\n")
+if (!dir.exists(out_final_dir)) {
+  dir.create(out_final_dir, recursive = TRUE)
+  cat("Output directory created:", out_final_dir, "\n")
 } else {
-  cat("Output directory already exists:", out_dir, "\n")
+  cat("Output directory already exists:", out_final_dir, "\n")
 }
 
-# /*===== Loading the data =====*/
+
+# /*===========================================*/
+#'=  GEP Calculation =
+# /*===========================================*/
+
+# /*===== A. Loading the water use: Price and Quantity data =====*/
 w_dt_country <- fread(file.path(out_interm_dir, "water_p_q.csv"))
+
+data.frame(w_dt_country[year==2019])
+
+# /*===== B. Loading Country Boundary =====*/
+z_ee_r250_sf <- 
+  st_read(file.path(pwd, "Data/raw/z_ee_r250_correspondence.gpkg")) %>%
+  select(iso3_r250_id, iso3_r250_label, iso3_r250_name)
+
+z_ee_r250_dt <- 
+  st_drop_geometry(z_ee_r250_sf) %>%
+  data.table()
+
+
+# /*===== Merge A and B =====*/
+# check unmatched countries
+# setdiff(w_dt_country$iso_code3, z_ee_r250_dt$iso3_r250_label)
+
+w_dt_country <- 
+  merge(z_ee_r250_dt, w_dt_country, , by.x = "iso3_r250_label", by.y = "iso_code3")
 
 
 # /*===== Calculating GEP (in billion dollars) of water by sector and year =====*/
-w_dt_country[, `:=`(
-  gep_w_ag_bil = wue_irrag_usdpm3 * w_agriculture / 10^9,
-  gep_w_ind_bil = wue_industry_usdpm3 * w_industry / 10^9, 
-  gep_w_mun_bil= wue_municipal_usdpm3 * w_municipal / 10^9 
-)]
+# w_dt_country[, `:=`(
+#   gep_w_ag_bil = wue_irrag_usdpm3 * w_agriculture / 10^9,
+#   gep_w_ind_bil = wue_industry_usdpm3 * w_industry / 10^9, 
+#   gep_w_mun_bil= wue_municipal_usdpm3 * w_municipal / 10^9 
+# )]
 
-fwrite(w_dt_country, file.path(out_final_dir, "gep_water_y_country.csv"))
+w_dt_country[, `:=`(
+    ag_wateruse_gep = wue_irrag_usdpm3 * w_agriculture,
+    ind_wateruse_gep = wue_industry_usdpm3 * w_industry, 
+    mun_wateruse_gep = wue_municipal_usdpm3 * w_municipal 
+  )] %>%
+  .[, wateruse_gep := rowSums(.SD, na.rm = TRUE), .SDcols = c("ag_wateruse_gep", "ind_wateruse_gep", "mun_wateruse_gep")]
+
+# This is the main table: 
+tg_year <- 2019
+wateruse_gep_tbl <- 
+  w_dt_country[year == tg_year, ] %>%
+  .[, .(iso3_r250_label, iso3_r250_id, iso3_r250_name, wateruse_gep)]
+
+fwrite(wateruse_gep_tbl, file.path(out_final_dir, "wateruse_gep.csv"))
 
 
 # /*===== Aggregate by year across countries =====*/
